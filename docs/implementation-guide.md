@@ -14,7 +14,7 @@ AGENTS.md（Codex）と CLAUDE.md（Claude Code）は、どちらもこのファ
 - PDFは300dpi相当で画像にする（docs/logic-design.md のL-01）
 - 台形補正後の画像は、長辺4000pxにする（docs/logic-design.md のL-02）
 - 縦横別の縮尺の判定値は、30°と±3%（docs/logic-design.md のL-04）
-- フォントはOS標準の和文ゴシック、アイコンはLucideを使う（docs/screens.md の「デザイントークン」。後でモックを比べて確定する）
+- アイコンはLucideを使う（docs/screens.md の「デザイントークン」。後でモックを比べて確定する）
 - 作業ファイルの拡張子は `.zakkuri.json`（docs/data-model.md）
 
 ## 技術スタック
@@ -26,8 +26,8 @@ AGENTS.md（Codex）と CLAUDE.md（Claude Code）は、どちらもこのファ
 - 作業の保存にはIndexedDBを使う。PWAにはService Workerを使う
 - テストは `node --test`（Node 20以上）で行う
 - 公開先はGitHub Pages（リポジトリ zakkuri、`zakkuri.sikumilab.com`）
-- UI: 共通モジュールの `ui/tokens.css`・`ui/shell.js`・`ui/viewport.js` を使い、サクズと見た目と操作をそろえる（詳細は docs/screens.md）
-- 共通モジュール: `vendor/sikumi-draw-core/`（`CORE-0.1.0` に固定）。多角形の計算・丸め・日付・印刷・寸法線・北の記号・保存・作業ファイルの検証・PWAは、ここにあるものを使い、アプリ側で作り直さない
+- UI: サクズと見た目と操作をそろえる（詳細は docs/screens.md）。書体は BIZ UDPゴシックを `fonts/` に同梱する
+- 共通部品: サクズの `src/shared/`（幾何・丸め・回転・印刷・日付・SIMA/CSV/DXFの読み取り）を使う。共通モジュール（sikumi-draw-core）として切り出すか、コピーして使うかは、着手時（T-000）に発案者と決める（C-05b）。どちらの場合も、アプリ側で同じ計算を作り直さない
 
 ## ディレクトリ構成
 
@@ -37,8 +37,8 @@ src/app.js            起動、画面の状態管理
 src/version.js        版の正典（APP_VERSION）
 src/core/             ざっくり地積だけの計算（DOMに触らない。node --test で検証する）
   homography.js scale.js triangulate.js sansha.js chimoku.js
-vendor/sikumi-draw-core/  共通モジュール（直接編集しない。C-05）
-scripts/sync-core.mjs     共通モジュールの取り込みと、書き換えの検出
+src/shared/ または vendor/  サクズと共通の部品（置き場所は T-000 で決める。C-05b）
+scripts/sync-core.mjs     共通モジュールにした場合だけ: 取り込みと、書き換えの検出
 src/io/               画像・PDFの読み込み、IndexedDB、作業ファイル
 src/ui/               画面・SVGの描画・操作
 vendor/pdfjs/ vendor/lucide/
@@ -60,7 +60,7 @@ docs/                 要件・設計
 - 上げ方: PATCHは小さな修正、MINORは互換性のある機能の追加、MAJORは作業ファイルの互換性が壊れる変更。MINORを上げたらPATCHを0に、MAJORを上げたらMINORとPATCHを0に戻す
 - 正典: `src/version.js` の `APP_VERSION`
 - 反映先: 画面のフッタ、`sw.js` のキャッシュ名、作業ファイルの `appVersion`
-- 同値の確認: `node vendor/sikumi-draw-core/scripts/check-version.mjs` を実行する。CIでも実行し、`sw.js` の版と食い違ったら失敗させる。あわせて `node scripts/sync-core.mjs --verify` で、共通モジュールが書き換えられていないかを確かめる
+- 同値の確認: `node scripts/check-version.mjs`（サクズと同じ仕組み）を実行する。CIでも実行し、`sw.js` の版と食い違ったら失敗させる。共通モジュールにした場合は、あわせて取り込んだ部品が書き換えられていないかを確かめる
 
 ## 日時・タイムゾーン
 
@@ -99,7 +99,7 @@ docs/requirements.md の0章に従う。
 | C-02 | URL（クエリ文字列・ハッシュを含む）に作業データを入れない | 閲覧履歴やチャットのログに残るのを防ぐため |
 | C-03 | 図面には、注意書き「公図等から推定した概算であり、測量成果ではありません」と、縮尺の算出に使った基準を必ず載せる | 正式な地積測量図と誤解されるのを防ぐため |
 | C-04 | 作業ファイルに `schemaVersion` と `appId: "zakkuri"` を持たせる。知らない版や別のアプリのファイルは読み込みを中止し、現在の作業を上書きしない | データの消失を防ぐため |
-| C-05 | `vendor/sikumi-draw-core/` を直接編集しない。直す場合は共通モジュールのリポジトリで直し、`sync-core.mjs` で取り込み直す | サクズと部品の中身が食い違わないようにするため |
+| C-05b | 着手時に、サクズの `src/shared/` を共通モジュールとして切り出すか、コピーして使うかを判断する。共通モジュールにした場合は、版を固定して取り込み、直接書き換えない | サクズと部品の中身が食い違わないようにするため（C-05 は 2026-11-21 に失効） |
 
 ## 検証済みの事実
 
@@ -111,4 +111,4 @@ docs/requirements.md の0章に従う。
 
 - 要件: docs/requirements.md（機能IDはここを正とする）
 - 設計: docs/logic-design.md（計算）、docs/data-model.md、docs/screens.md、docs/tasks.md
-- 共通モジュール: vendor/sikumi-draw-core/ と、そのリポジトリの docs/implementation-guide.md
+- 共通部品: サクズ（gerupon-lgtm/sakuzu）の src/shared/ と docs/implementation-guide.md

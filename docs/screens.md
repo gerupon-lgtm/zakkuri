@@ -2,11 +2,12 @@
 
 ## デザイントークン
 
-正典は共通モジュールの `ui/tokens.css`。サクズと同じ値を使う。モックを比べて確定する作業（T-019）は、サクズの S-T20 と同時に行う。
+サクズと同じ値を使う（正典はサクズの `src/ui/styles.css`。共通モジュールに切り出すかは C-05b で判断する）。フォントは 2026-11-25 にサクズの S-T20（比較モック）で発案者が選んだ。
 
 ### フォント
-- 本文・図面: `"Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif`【想定: T-019で候補3種のモックを比べて確定する】
-- 配信: OSに入っているフォントを使う（オフラインでも動き、外部への通信もないため）。Webフォントを使う場合は、自分のサイトに置く（C-01）
+- 本文・図面: BIZ UDPゴシック。`"SZ BIZ UDPGothic", "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Noto Sans JP", sans-serif`（2026-11-25 確定）
+- 配信: `fonts/` に同梱する（woff2、JIS第1・第2水準とcp932の記号に絞る。サクズの `fonts/` と同じファイル。ライセンス OFL の文 `fonts/OFL.txt` も置く）。CDNから読み込まない（C-01）
+- 数値の入力欄は右寄せにする（サクズと同じ。2026-11-25 発案者の指示）
 - 太さ: 400と700
 - 基準: 画面は16px・行間1.6。図面の寸法の数字は、印刷して8pt以上
 - 図面の数字は等幅の数字にする（`font-variant-numeric: tabular-nums`）。三斜表の桁をそろえるため
