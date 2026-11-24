@@ -2,7 +2,7 @@
 
 このアプリの中心となる計算を定める。L-03・L-07・L-08 はサクズと共通の部品（サクズの `src/shared/`。扱いは C-05b）で実装し、ここに書いた仕様と検証ケースは、共通部品のテストにも入れる。それ以外の計算は `src/core/` に、DOMに触れない純粋な関数として置き、`tests/` で検証する。
 
-端数の丸めは、共通モジュールの `util/round.js`（`roundHalfUp`）を使う。
+端数の丸めは、共通部品（サクズの `src/shared/round.js` の `roundHalfUp`）を使う。
 
 ## 座標の約束ごと
 
@@ -17,12 +17,12 @@
 |---|---|---|---|
 | L-01 | F-001 | PDFを画像に変換する | src/io/pdf.js |
 | L-02 | F-002 | 台形補正（射影変換） | core/homography.js |
-| L-03 | F-003, F-007 | 多角形の検証と面積 | 共通モジュール geo/geometry.js |
+| L-03 | F-003, F-007 | 多角形の検証と面積 | 共通部品 shared/geometry.js |
 | L-04 | F-006 | 縮尺の推定 | core/scale.js |
 | L-05 | F-007 | 三角形への分割と対角線の入れ替え | core/triangulate.js |
 | L-06 | F-008 | 三斜求積と端数処理 | core/sansha.js, core/chimoku.js |
-| L-07 | F-010 | 図面の縮尺を決める | 共通モジュール print/scale.js（候補の列はこのアプリが渡す） |
-| L-08 | F-009 | 作成日の扱い | 共通モジュール util/date.js |
+| L-07 | F-010 | 図面の縮尺を決める | 共通部品 shared/print.js の selectDrawingScale（候補の列はこのアプリが渡す） |
+| L-08 | F-009 | 作成日の扱い | 共通部品 shared/date.js |
 
 ---
 
