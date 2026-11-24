@@ -21,8 +21,10 @@
 | rectify.paper | `"A4"` \| `"A3"` \| `"B4"` \| `"unknown"` | — | 用紙の種類 |
 | rectify.orientation | `"portrait"` \| `"landscape"` | — | 用紙の向き |
 | vertices | {id, x, y}[] | ◯ | 土地の頂点（元画像座標）。並び順が外周の順番 |
+| closed | boolean | ◯ | 外周を閉じたか（ZC-0.1.0 で追加） |
+| lastTab | string | — | 再開するときに開く手順（load/rect/vert/ref/tri/info。ZC-0.1.0 で追加） |
 | north | {x1,y1,x2,y2} | — | 北の向きを示す矢印（元画像座標）。始点→終点が北 |
-| refs.lengths | {id, p1:{x,y}, p2:{x,y}, lengthM}[] | — | 辺の長さの基準（元画像座標と、実際の長さ） |
+| refs.lengths | {id, p1:{x,y}, p2:{x,y}, v1?, v2?, lengthM}[] | — | 辺の長さの基準（元画像座標と、実際の長さ）。v1・v2 は頂点のID。頂点に付いた基準は、頂点を動かすと一緒に動き、頂点を消すと消える（ZC-0.1.0 で追加） |
 | refs.area | {valueM2, chisekiChosa} | — | 公簿面積と、地籍調査済みかどうか |
 | chimoku | string | ◯ | 地目（L-06の23種のいずれか） |
 | anisotropic | boolean | ◯ | 縦横別の縮尺を使うか。既定は false |

@@ -1,0 +1,1 @@
+pdfjs-dist 4.10.38（Apache-2.0）。npm の pdfjs-dist から build/pdf.min.mjs・build/pdf.worker.min.mjs をそのまま同梱（CDNから読み込まない＝C-01）

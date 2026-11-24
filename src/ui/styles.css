@@ -1,0 +1,70 @@
+/* 見た目はサクズ（src/ui/styles.css SZ-0.5.0）にそろえる。書体は BIZ UDPゴシック（OFL、同梱。C-01） */
+@font-face{font-family:"SZ BIZ UDPGothic";font-weight:400;font-display:swap;src:url(../../fonts/BIZUDPGothic-Regular.woff2) format("woff2")}
+@font-face{font-family:"SZ BIZ UDPGothic";font-weight:700;font-display:swap;src:url(../../fonts/BIZUDPGothic-Bold.woff2) format("woff2")}
+:root{--font:"SZ BIZ UDPGothic","BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif;--fg:#1d2430;--muted:#6b7280;--line:#d6dae1;--bg:#f6f7f9;--card:#fff;--accent:#2f6fde;--warn:#c27c0e;--err:#c62828;--candL:#e07a1f;--candR:#7b3fd0}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:var(--font);color:var(--fg);background:var(--bg);font-size:15px}
+button,input,select{font:inherit}button{cursor:pointer}
+.app{display:flex;flex-direction:column;height:100dvh}
+header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+header .logo{width:26px;height:26px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700}
+header h1{font-size:17px;margin:0}header .sp{flex:1}
+footer{font-size:11px;color:var(--muted);text-align:center;padding:4px;border-top:1px solid var(--line);background:var(--card)}
+main{flex:1;min-height:0;display:flex}
+.list{padding:16px;max-width:720px;margin:0 auto;width:100%;overflow:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:center}
+.card .t{flex:1}.card .n{font-weight:700}.card .d{font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{color:var(--err)}.btn.sm{padding:4px 8px;font-size:13px}
+.btn.on{background:#e6efff;border-color:var(--accent)}
+.editor{flex:1;display:flex;min-height:0;position:relative}
+.canvas{flex:1;position:relative;min-width:0;touch-action:none;background:#fff}
+.canvas svg{width:100%;height:100%;display:block}
+.float{position:absolute;top:8px;left:8px;display:flex;gap:6px}
+.panel{width:360px;border-left:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}.tabs button{flex:1;border:0;background:none;padding:10px;border-bottom:3px solid transparent}
+.tabs button.on{border-color:var(--accent);font-weight:700}
+.pbody{flex:1;overflow:auto;padding:12px}
+.row{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.row label{min-width:64px;font-size:13px;color:var(--muted)}
+.row input[type=number],.row input[type=text]{width:96px;padding:6px;border:1px solid var(--line);border-radius:6px}
+.row select{padding:6px;border:1px solid var(--line);border-radius:6px}
+.pick{padding:6px 10px;border:1px dashed var(--line);border-radius:6px;background:#fafbfc;min-width:52px}
+.pick.active{border:2px solid var(--accent);background:#eef4ff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{border:0;background:#fff;padding:6px 10px}.seg button.on{background:var(--accent);color:#fff}
+.steps .st{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px}
+.st .h{display:flex;gap:6px;align-items:center}.st .lb{font-weight:700;min-width:36px}
+.badge{font-size:11px;padding:1px 6px;border-radius:10px;background:#eee}
+.badge.warn{background:#fff3dc;color:var(--warn)}.badge.error{background:#fde7e7;color:var(--err)}.badge.blocked{background:#eee;color:var(--muted)}.badge.pending{background:#efe6fb;color:var(--candR)}
+.note{font-size:12px;color:var(--muted)}.msg{font-size:13px;margin:6px 0;padding:6px 8px;border-radius:6px;background:#f1f5ff}
+.msg.err{background:#fde7e7;color:var(--err)}.msg.warn{background:#fff3dc;color:var(--warn)}
+dialog{border:1px solid var(--line);border-radius:12px;max-width:360px}
+@media (max-width:899px){
+ .editor{flex-direction:column}.panel{width:100%;height:46%;border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -4px 12px rgba(0,0,0,.06)}
+ .panel.min{height:44px}.panel .grab{height:6px;width:40px;background:#ccd;border-radius:3px;margin:6px auto 0}
+}
+@media (min-width:900px){.panel .grab{display:none}}
+.canvas,.canvas svg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input[type=number],input[inputmode=decimal]{text-align:right}
+h4{margin:12px 0 6px;font-size:14px}
+.ul{margin:4px 0 10px;padding-left:18px}.ul li{margin:6px 0}
+.nudge{display:inline-flex;gap:2px}
+.measure{position:absolute;left:8px;bottom:8px;background:#1d2430;color:#fff;padding:6px 10px;border-radius:8px;font-size:14px}
+/* ざっくり地積の追加 */
+.canvas{background:#e9ecf1}
+.canvas.empty{display:grid;place-items:center}.hello{max-width:340px;text-align:center;padding:16px}
+.float .tool{background:#1d2430;color:#fff;border-radius:8px;padding:4px 4px 4px 10px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.float .tool .btn{color:var(--fg)}
+.tabs button{padding:10px 2px;font-size:13px;white-space:nowrap}.tabs button.done:not(.on){color:#2e7d32}.tabs button:disabled{color:#bbb}
+.btn.file{display:inline-block}.btn:disabled{opacity:.45;cursor:default}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.thumb{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:2px}.thumb img{max-width:96px;max-height:96px;display:block}
+.tbl{border-collapse:collapse;font-size:13px;width:100%}.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;white-space:nowrap}
+.tbl td.n,.tbl.num td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}.tbl tr.sum td{background:#f6f7f9}.tbl input{width:80px;padding:5px;border:1px solid var(--line);border-radius:6px;text-align:right}
+.scroll{overflow-x:auto}
+.result{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:10px 0;background:#fafbfc;display:flex;flex-direction:column;gap:4px;font-size:14px}.result .big{font-size:17px;font-weight:700;margin-top:4px}
+.selbox{border:1px solid var(--accent);border-radius:8px;padding:8px;margin:8px 0;background:#f3f7ff}
+.hiddenDate{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.dateIn{position:relative;display:inline-flex;gap:4px;align-items:center}
+dialog.imgdlg{max-width:min(96vw,900px)}dialog.imgdlg img{max-width:100%;max-height:70vh;display:block;margin:auto}
+@media (max-width:899px){.panel{height:48%}}
+.panel.min{height:58px}.panel.min .pbody{display:none}

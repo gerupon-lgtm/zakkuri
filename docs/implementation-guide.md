@@ -27,7 +27,7 @@ AGENTS.md（Codex）と CLAUDE.md（Claude Code）は、どちらもこのファ
 - テストは `node --test`（Node 20以上）で行う
 - 公開先はGitHub Pages（リポジトリ zakkuri、`zakkuri.sikumilab.com`）
 - UI: サクズと見た目と操作をそろえる（詳細は docs/screens.md）。書体は BIZ UDPゴシックを `fonts/` に同梱する
-- 共通部品: サクズの `src/shared/`（幾何・丸め・回転・印刷・日付・SIMA/CSV/DXFの読み取り）を使う。共通モジュール（sikumi-draw-core）として切り出すか、コピーして使うかは、着手時（T-000）に発案者と決める（C-05b）。どちらの場合も、アプリ側で同じ計算を作り直さない
+- 共通部品: サクズの `src/shared/`（幾何・丸め・回転・印刷・日付・SIMA/CSV/DXFの読み取り）を使う。2026-11-25 の T-000 で「コピーして使う」に決めた（C-05b）。コピーしたファイルの先頭にコピー元の版を書き、直すときはサクズにも反映する。どちらの場合も、アプリ側で同じ計算を作り直さない
 
 ## ディレクトリ構成
 

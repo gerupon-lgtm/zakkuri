@@ -2,7 +2,9 @@
 
 公図の画像（スキャン・写真・PDF）から縮尺を推定し、三斜法の概算求積表を付けた「現況図（概算）」を1枚の図面にするPWA。SIKUMI LAB。
 
-- 状態: 設計まで（実装は未着手）。姉妹アプリ「サクズ」（gerupon-lgtm/sakuzu）を先に作っている
+- 状態: 試作α ZC-0.1.0（読み込み → 補正 → 頂点 → 基準 → 三斜求積の表示まで）。図面の印刷はMVP（ZC-0.2.0）で追加
+- 共通部品: サクズ（gerupon-lgtm/sakuzu）SZ-0.5.0 の src/shared をコピーして使う（C-05b、案A）
+- テスト: `TZ=UTC node --test tests/*.test.mjs`／合成画像の作り直し: `node scripts/make-test-images.mjs`
 - 公開予定: `zakkuri.sikumilab.com`（GitHub Pages）
 - 文書
   - docs/構想たたき台_ざっくり地積.md — 構想

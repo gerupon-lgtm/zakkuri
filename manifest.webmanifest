@@ -1,0 +1,15 @@
+{
+  "name": "ざっくり地積",
+  "short_name": "ざっくり地積",
+  "description": "公図の画像から縮尺を割り出し、三斜法の概算求積図を作る（SIKUMI LAB）",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#2f6fde",
+  "lang": "ja",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
