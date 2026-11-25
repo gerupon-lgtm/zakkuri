@@ -50,6 +50,7 @@ export function compute(work) {
   out.paperDen = mm ? paperScaleDenominator(Math.sqrt(sc.sx * sc.sy), mm) : null;
   const toReal = (p) => ({ x: p.x * sc.sx, y: p.y * sc.sy });
   out.real = V.map(toReal);
+  if (work.north) { const a = R.map({ x: work.north.x1, y: work.north.y1 }), b = R.map({ x: work.north.x2, y: work.north.y2 }); out.northReal = { x: (b.x - a.x) * sc.sx, y: (b.y - a.y) * sc.sy }; }
   out.edgeLen = V.map((p, i) => { const q = V[(i + 1) % V.length]; return Math.hypot((q.x - p.x) * sc.sx, (q.y - p.y) * sc.sy); });
   if (!polyOk) return out;
 

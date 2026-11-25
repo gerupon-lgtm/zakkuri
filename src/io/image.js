@@ -78,7 +78,7 @@ export function rectifiedPreview(src, k, Hi, width, height, long = 1400) {
     od[o + 3] = 255;
   }
   octx.putImageData(img, 0, 0);
-  return out.toDataURL("image/jpeg", 0.85);
+  return { url: out.toDataURL("image/jpeg", 0.85), w: W, h: Ht, f };
 }
 
 export async function blobToBase64(blob) {

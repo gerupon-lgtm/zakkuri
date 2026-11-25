@@ -11,6 +11,5 @@ jobs:
         run: TZ=UTC node --test tests/*.test.mjs
       - name: 版と事前キャッシュの確認
         run: node scripts/check-version.mjs
-      - name: 外部への通信がないかの確認（C-01）
-        run: |
-          if grep -rnE "https?://" src/ | grep -vE "sikumilab\.com|www\.w3\.org/2000/svg"; then echo "外部URLが含まれています"; exit 1; fi
+      - name: 外部への通信がないかの確認（C-01・T-021）
+        run: node scripts/check-no-external.mjs

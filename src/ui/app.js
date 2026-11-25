@@ -11,6 +11,8 @@ import { createStore } from "../io/store.js";
 import { APP_ID, SCHEMA_VERSION, parseWorkFile } from "../io/workfile.js";
 import { decode, isPdf, openPdf, renderPdfPage, displayImage, rectifiedPreview, blobToBase64, base64ToBlob } from "../io/image.js";
 import { MSG, msgOf } from "./messages.js";
+import { buildSheet } from "./sheet.js";
+import { alignAngle, normDeg } from "../shared/rotate.js";
 
 const store = createStore();
 const $app = document.getElementById("app");
@@ -38,7 +40,7 @@ function newWork() {
 // ---------- 状態 ----------
 const S = {
   w: newWork(), disp: null, C: {}, tab: "load", vt: { cx: 0, cy: 0, k: 1 }, sel: null, tool: null, pick: [], insertAfter: null,
-  msg: null, loupe: null, pdf: null, panelMin: false, prefs: {}, busy: null, undo: [], redo: [],
+  view: "work", bg: null, msg: null, loupe: null, pdf: null, panelMin: false, prefs: {}, busy: null, undo: [], redo: [],
 };
 let saveTimer = null;
 
@@ -147,6 +149,7 @@ async function importWork(file) {
 
 // ---------- 描画 ----------
 function render() {
+  if (S.view === "preview") return renderPreview();
   const head = `<header class="noprint"><div class="logo">ざ</div><h1>ざっくり地積</h1><span class="sp"></span>${S.w.image ? `<button class="btn sm" data-act="undo" ${S.undo.length ? "" : "disabled"}>元に戻す</button><button class="btn sm" data-act="redo" ${S.redo.length ? "" : "disabled"}>やり直す</button>` : ""}</header>`;
   const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
   const canvas = S.w.image ? `<div class="canvas" id="cv"><svg id="svg"></svg><div class="float"><button class="btn sm" data-act="fit" aria-label="全体を表示">${ICON.fit}</button>${toolBadge()}</div>${areaBadge()}</div>` : `<div class="canvas empty"><div class="hello"><p><b>公図を読み込んでください</b></p><p class="note">スキャン画像・写真（JPEG・PNG）・PDFが使えます。<br>画像はこの端末の中だけで処理し、外部へは送りません。</p></div></div>`;
@@ -180,6 +183,7 @@ function loadHtml() {
   <label class="btn file">カメラで撮る<input type="file" accept="image/*" capture="environment" data-act="camera" hidden></label></div>
   <p class="note">JPEG・PNG・PDF。PDFは1ページずつ画像にして使います。</p>
   <h4>作業ファイル</h4><div class="row"><label class="btn file">作業ファイルを読み込む<input type="file" accept=".json,application/json" data-act="workfile" hidden></label>${im ? `<button class="btn" data-act="export">書き出す</button>` : ""}</div>
+  <h4>アプリを共有</h4><div class="row"><button class="btn" data-act="share">このアプリのURLを共有</button></div><p class="note">アプリのURLだけを送ります。公図や作業の内容は送りません。</p><div id="shareOut"></div>
   ${im ? `<h4>作業を消す</h4><button class="btn danger" data-act="clearWork">この作業を消して最初から</button>` : ""}`;
 }
 // --- ② 補正
@@ -273,10 +277,57 @@ function infoHtml() {
   const f = (k, l, w = 200) => `<div class="row"><label>${l}</label><input type="text" data-draw="${k}" value="${esc(d[k])}" style="width:${w}px"></div>`;
   return `${f("shozai", "所在")}${f("chiban", "地番", 120)}${f("officeName", "事務所名")}${f("author", "作成者", 140)}
   <div class="row"><label>作成日</label><span class="dateIn"><input type="text" inputmode="numeric" id="dateText" value="${esc(formatYmd(d.createdDate))}" placeholder="yyyy/MM/dd" style="width:120px"><button class="btn sm" data-act="cal" aria-label="カレンダー">${ICON.cal}</button><input type="date" id="datePick" value="${esc(d.createdDate)}" class="hiddenDate"></span><span class="note" id="dateErr"></span></div>
-  <div class="msg">図面のプレビューと印刷（PDF保存）は、次の版（MVP ZC-0.2.0）で追加します。</div>
+  <h4>図面</h4>
+  <div class="row"><label>用紙</label><span class="seg"><button class="${d.paper !== "A3" ? "on" : ""}" data-act="paper" data-v="A4">A4横</button><button class="${d.paper === "A3" ? "on" : ""}" data-act="paper" data-v="A3">A3横</button></span></div>
+  <div class="row"><label><input type="checkbox" data-set="showBg" ${d.showBackground ? "checked" : ""}> 公図の画像を背景に重ねる</label></div>
+  ${rotateHtml()}
+  ${S.C.sansha ? `<div class="row"><button class="btn primary" data-act="preview">図面をプレビュー</button></div>` : `<div class="msg warn">図面を作るには、③で外周を閉じ、④で基準（辺の長さか面積）を入れてください。<div class="row" style="margin-top:6px"><button class="btn sm" data-tab="ref">④基準へ</button></div></div>`}
   <h4>作業ファイル</h4><div class="row"><button class="btn" data-act="export">作業ファイルを書き出す</button></div>
   <p class="note">別の端末で続けるときや、控えを残すときに使います。①から読み込めます。</p>`;
 }
+function rotateHtml() {
+  const d = S.w.drawing, n = S.w.vertices.length;
+  if (!S.C.real || !S.w.closed) return "";
+  return `<div class="row"><label>図の回転</label><input type="text" inputmode="decimal" data-set="rot" value="${roundHalfUp(d.rotationDeg || 0, 2)}" style="width:70px"> 度<button class="btn sm" data-act="rot0">0°に戻す</button></div>
+  <div class="row"><label>辺でそろえる</label><select id="rotEdge">${S.w.vertices.map((_, i) => `<option value="${i}" ${S.rotEdge === i ? "selected" : ""}>辺${i + 1}–${(i + 1) % n + 1}</option>`).join("")}</select><button class="btn sm" data-act="align" data-m="h">水平に</button><button class="btn sm" data-act="align" data-m="v">垂直に</button></div>
+  <p class="note">回すのは図面の見た目だけです（頂点・面積は変わりません）。北の記号も一緒に回ります。</p>`;
+}
+
+// ---------- 図面のプレビュー・印刷（S-002・F-010） ----------
+function renderPreview() {
+  const d = S.w.drawing;
+  if (!S.C.sansha) { S.view = "work"; return render(); }
+  const r = buildSheet(S.w, S.C, d.showBackground ? S.bg : null);
+  const head = `<header class="noprint"><div class="logo">ざ</div><h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closePreview">作業に戻る</button></header>`;
+  const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
+  const ctrl = `<div class="pctrl noprint">
+    <div class="row"><label>用紙</label><span class="seg"><button class="${d.paper !== "A3" ? "on" : ""}" data-act="paper" data-v="A4">A4横</button><button class="${d.paper === "A3" ? "on" : ""}" data-act="paper" data-v="A3">A3横</button></span>
+    <label style="min-width:0"><input type="checkbox" data-set="showBg" ${d.showBackground ? "checked" : ""}> 公図を背景に</label></div>
+    ${rotateHtml()}
+    <div class="row"><button class="btn primary" data-act="print">印刷／PDFに保存</button><span class="note">図面縮尺 ${r.scale.fixed ? "1/" + r.scale.denominator : "縮尺任意"}</span></div>
+    <p class="note">PDFにするときは、印刷画面の送信先で「PDFに保存」を選び、用紙を${d.paper === "A3" ? "A3" : "A4"}・横、余白を「なし」にしてください。</p></div>`;
+  $app.innerHTML = head + `<main class="pmain"><div class="preview">${ctrl}<div class="sheetWrap"><div class="sheet" style="aspect-ratio:${r.W}/${r.H}">${r.svg}</div></div></div></main>` + foot;
+}
+/** 背景に重ねる画像（補正したときは補正後の画像を作る）。設定が変わったら作り直す */
+async function prepareBg() {
+  const w = S.w; if (!w.drawing.showBackground || !S.disp || !S.C.scale?.sx) return;
+  const key = JSON.stringify(w.rectify);
+  if (S.bg?.key === key) { S.bg = { ...S.bg, ax: S.bg.u * S.C.scale.sx, ay: S.bg.u * S.C.scale.sy }; return; }
+  if (!w.rectify.enabled) { S.bg = { key, href: S.disp.url, w: S.disp.canvas.width, h: S.disp.canvas.height, u: 1 / S.disp.k }; }
+  else { const R = S.C.R; const p = rectifiedPreview(S.disp.canvas, S.disp.k, R.Hi, R.width, R.height, 2000); S.bg = { key, href: p.url, w: p.w, h: p.h, u: 1 / p.f }; }
+  S.bg.ax = S.bg.u * S.C.scale.sx; S.bg.ay = S.bg.u * S.C.scale.sy;
+}
+function setPageSize() {
+  let st = document.getElementById("pageSize"); if (!st) { st = document.createElement("style"); st.id = "pageSize"; document.head.appendChild(st); }
+  st.textContent = `@page { size: ${S.w.drawing.paper === "A3" ? "A3" : "A4"} landscape; margin: 0 }`;
+}
+async function share() {
+  const url = location.origin + location.pathname; // クエリ文字列・ハッシュを付けない（C-02）
+  try { if (navigator.share) { await navigator.share({ title: "ざっくり地積", url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); S.msg = { text: "アプリのURLをコピーしました" }; return render(); } catch { /* 次へ */ }
+  render(); const o = document.getElementById("shareOut"); if (o) { o.innerHTML = `<input type="text" readonly value="${esc(url)}" style="width:100%;padding:6px">`; o.querySelector("input").select(); }
+}
+
 function bindDateInput() {
   const t = document.getElementById("dateText"), p = document.getElementById("datePick"); if (!t) return;
   let first = true;
@@ -488,7 +539,7 @@ $app.addEventListener("click", async (e) => {
     case "rectOff": S.sel = null; return edit((w) => { w.rectify.enabled = false; });
     case "orient": return edit((w) => { w.rectify.orientation = t.dataset.v; });
     case "cornersReset": return edit((w) => { w.rectify.corners = defaultCorners(w.image.width, w.image.height); });
-    case "rectPreview": { const R = S.C.R; if (!R?.Hi) return; S.busy = "補正後の画像を作っています…"; render(); await new Promise((r) => setTimeout(r, 30)); const url = rectifiedPreview(S.disp.canvas, S.disp.k, R.Hi, R.width, R.height); S.busy = null; render(); return showImageDialog("補正後の画像（確認用）", url); }
+    case "rectPreview": { const R = S.C.R; if (!R?.Hi) return; S.busy = "補正後の画像を作っています…"; render(); await new Promise((r) => setTimeout(r, 30)); const { url } = rectifiedPreview(S.disp.canvas, S.disp.k, R.Hi, R.width, R.height); S.busy = null; render(); return showImageDialog("補正後の画像（確認用）", url); }
     case "nudge": { const [dx, dy] = t.dataset.d.split(",").map(Number); return nudge(dx, dy); }
     case "close": S.sel = null; return edit((w) => { w.closed = true; });
     case "open": return edit((w) => { w.closed = false; w.triangles = null; });
@@ -503,6 +554,13 @@ $app.addEventListener("click", async (e) => {
     case "toolCancel": S.tool = null; S.pick = []; S.panelMin = false; return render();
     case "refDel": return edit((w) => { w.refs.lengths = w.refs.lengths.filter((r) => r.id !== t.dataset.id); });
     case "triReset": S.msg = null; return edit((w) => { w.triangles = null; });
+    case "preview": S.busy = null; S.view = "preview"; if (!w.drawing.createdDate) w.drawing.createdDate = todayJst(); await prepareBg(); return render();
+    case "closePreview": S.view = "work"; S.tab = "info"; render(); return requestAnimationFrame(fit);
+    case "print": setPageSize(); return window.print();
+    case "paper": edit((w) => { w.drawing.paper = t.dataset.v; }); return;
+    case "rot0": edit((w) => { w.drawing.rotationDeg = 0; }); return;
+    case "align": { const i = +document.getElementById("rotEdge").value; S.rotEdge = i; const a = S.C.real[i], b = S.C.real[(i + 1) % S.C.real.length]; edit((w) => { w.drawing.rotationDeg = alignAngle(a, b, t.dataset.m); }); return; }
+    case "share": return share();
     case "cal": { const p = document.getElementById("datePick"); try { p.showPicker(); } catch { p.click(); } return; }
   }
 });
@@ -528,6 +586,8 @@ $app.addEventListener("change", async (e) => {
   if (k === "chiseki") return edit((w) => { w.refs.area.chisekiChosa = t.checked; });
   if (k === "chimoku") return edit((w) => { w.chimoku = t.value; });
   if (k === "aniso") return edit((w) => { w.anisotropic = t.checked; });
+  if (k === "showBg") { edit((w) => { w.drawing.showBackground = t.checked; }, false); await prepareBg(); return render(); }
+  if (k === "rot") { const v = num(t.value); if (!Number.isFinite(v)) return render(); return edit((w) => { w.drawing.rotationDeg = normDeg(v); }); }
 });
 window.addEventListener("resize", () => S.w.image && drawSvg());
 window.addEventListener("keydown", (e) => {
