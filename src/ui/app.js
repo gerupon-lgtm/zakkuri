@@ -12,6 +12,8 @@ import { APP_ID, SCHEMA_VERSION, parseWorkFile } from "../io/workfile.js";
 import { decode, isPdf, openPdf, renderPdfPage, displayImage, rectifiedPreview, blobToBase64, base64ToBlob } from "../io/image.js";
 import { MSG, msgOf } from "./messages.js";
 import { buildSheet } from "./sheet.js";
+import { toSima, toDxf } from "../core/cadexport.js";
+import { encodeSjis } from "../io/sjis.js";
 import { alignAngle, normDeg } from "../shared/rotate.js";
 
 const store = createStore();
@@ -135,6 +137,19 @@ async function exportWork() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${base}.zakkuri.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
+/** ファイルとして保存させる（端末の中だけで作る。C-01） */
+function download(data, name, type) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const baseName = () => (S.w.drawing.chiban || S.w.image?.name.replace(/\.[^.]+$/, "") || "zakkuri").replace(/[\\/:*?"<>|]/g, "_");
+function exportCad(kind) {
+  if (!S.C.sansha) return;
+  if (kind === "sima") return download(encodeSjis(toSima(S.w, S.C)), `${baseName()}.sim`, "application/octet-stream");
+  const sc = buildSheet(S.w, S.C).scale;
+  download(encodeSjis(toDxf(S.w, S.C, sc.fixed ? sc.denominator : 250)), `${baseName()}.dxf`, "application/dxf");
+}
+
 async function importWork(file) {
   const r = parseWorkFile(await file.text());
   if (r.code) { S.msg = { cls: "err", text: msgOf(r.code) }; return render(); } // 今の作業はそのまま（C-04）
@@ -282,6 +297,9 @@ function infoHtml() {
   <div class="row"><label><input type="checkbox" data-set="showBg" ${d.showBackground ? "checked" : ""}> 公図の画像を背景に重ねる</label></div>
   ${rotateHtml()}
   ${S.C.sansha ? `<div class="row"><button class="btn primary" data-act="preview">図面をプレビュー</button></div>` : `<div class="msg warn">図面を作るには、③で外周を閉じ、④で基準（辺の長さか面積）を入れてください。<div class="row" style="margin-top:6px"><button class="btn sm" data-tab="ref">④基準へ</button></div></div>`}
+  <h4>CADデータ（SIMA・DXF）</h4>
+  <div class="row"><button class="btn" data-act="sima" ${S.C.sansha ? "" : "disabled"}>SIMAを書き出す</button><button class="btn" data-act="dxf" ${S.C.sansha ? "" : "disabled"}>DXFを書き出す</button></div>
+  <p class="note">任意座標（X＝北・Y＝東、頂点1を X=1000・Y=1000）、単位はm、文字コードは Shift_JIS です。${S.w.north ? "" : "<b>北を指定していないため、画像の上を北として書き出します。</b>"}座標は概算で、測量成果ではありません。</p>
   <h4>作業ファイル</h4><div class="row"><button class="btn" data-act="export">作業ファイルを書き出す</button></div>
   <p class="note">別の端末で続けるときや、控えを残すときに使います。①から読み込めます。</p>`;
 }
@@ -561,6 +579,10 @@ $app.addEventListener("click", async (e) => {
     case "rot0": edit((w) => { w.drawing.rotationDeg = 0; }); return;
     case "align": { const i = +document.getElementById("rotEdge").value; S.rotEdge = i; const a = S.C.real[i], b = S.C.real[(i + 1) % S.C.real.length]; edit((w) => { w.drawing.rotationDeg = alignAngle(a, b, t.dataset.m); }); return; }
     case "share": return share();
+    case "sima": return exportCad("sima");
+    case "dxf": return exportCad("dxf");
+    case "brokenDrop": if (!(await modal("保存されていた作業を消します。よろしいですか？"))) return; await store.delWork(); S.broken = null; S.msg = { text: "保存されていた作業を消しました。公図を読み込んでください" }; return render();
+    case "brokenExport": { const b = S.broken; if (!b) return; try { const data = b.image?.data instanceof Blob ? await blobToBase64(b.image.data) : null; download(JSON.stringify({ ...b, image: b.image ? { ...b.image, data } : null }), "保存されていた作業.zakkuri.json", "application/json"); } catch { S.msg = { cls: "err", text: "書き出せませんでした" }; render(); } return; }
     case "cal": { const p = document.getElementById("datePick"); try { p.showPicker(); } catch { p.click(); } return; }
   }
 });
@@ -617,7 +639,7 @@ if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) globalThis.__zk = { S,
       const bmp = await decode(saved.image.data); S.disp = await displayImage(bmp); bmp.close?.();
       S.w = { ...newWork(), ...saved }; S.tab = saved.lastTab || "vert"; S.C = compute(S.w);
       S.msg = { text: "前回の作業を開きました" }; render(); requestAnimationFrame(fit); return;
-    } catch { S.msg = { cls: "err", text: "前回の作業を開けませんでした。新しく読み込んでください" }; }
+    } catch { S.broken = saved; S.msg = { cls: "err", html: `前回の作業を開けませんでした（保存が壊れている可能性があります）。<div class="row" style="margin-top:6px"><button class="btn sm" data-act="brokenExport">書き出して残す</button><button class="btn sm danger" data-act="brokenDrop">破棄する</button></div>` }; }
   }
   render();
 })();

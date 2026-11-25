@@ -1,1 +1,1 @@
-export const APP_VERSION = "ZC-0.2.0";
+export const APP_VERSION = "ZC-0.3.0";
