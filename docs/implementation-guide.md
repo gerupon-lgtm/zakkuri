@@ -14,7 +14,7 @@ AGENTS.md（Codex）と CLAUDE.md（Claude Code）は、どちらもこのファ
 - PDFは300dpi相当で画像にする（docs/logic-design.md のL-01）
 - 台形補正後の画像は、長辺4000pxにする（docs/logic-design.md のL-02）
 - 縦横別の縮尺の判定値は、30°と±3%（docs/logic-design.md のL-04）
-- アイコンはLucideを使う（docs/screens.md の「デザイントークン」。後でモックを比べて確定する）
+- アプリのロゴ・アイコンは案Aを使う（T-019）。操作用アイコンはLucideを使う（docs/screens.md のデザイントークン）
 - 作業ファイルの拡張子は `.zakkuri.json`（docs/data-model.md）
 
 ## 技術スタック
@@ -56,7 +56,7 @@ docs/                 要件・設計
 
 ## バージョン管理
 
-- 形式: `ZC-MAJOR.MINOR.PATCH`（現在の版: `ZC-0.3.0`）
+- 形式: `ZC-MAJOR.MINOR.PATCH`（現在の版: `ZC-0.3.1`）
 - 上げ方: PATCHは小さな修正、MINORは互換性のある機能の追加、MAJORは作業ファイルの互換性が壊れる変更。MINORを上げたらPATCHを0に、MAJORを上げたらMINORとPATCHを0に戻す
 - 正典: `src/version.js` の `APP_VERSION`
 - 反映先: 画面のフッタ、`sw.js` のキャッシュ名、作業ファイルの `appVersion`

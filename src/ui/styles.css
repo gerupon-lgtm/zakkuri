@@ -1,12 +1,12 @@
 /* 見た目はサクズ（src/ui/styles.css SZ-0.5.0）にそろえる。書体は BIZ UDPゴシック（OFL、同梱。C-01） */
 @font-face{font-family:"SZ BIZ UDPGothic";font-weight:400;font-display:swap;src:url(../../fonts/BIZUDPGothic-Regular.woff2) format("woff2")}
 @font-face{font-family:"SZ BIZ UDPGothic";font-weight:700;font-display:swap;src:url(../../fonts/BIZUDPGothic-Bold.woff2) format("woff2")}
-:root{--font:"SZ BIZ UDPGothic","BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif;--fg:#1d2430;--muted:#6b7280;--line:#d6dae1;--bg:#f6f7f9;--card:#fff;--accent:#2f6fde;--warn:#c27c0e;--err:#c62828;--candL:#e07a1f;--candR:#7b3fd0}
+:root{--font:"SZ BIZ UDPGothic","BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif;--fg:#1d2430;--muted:#6b7280;--line:#d6dae1;--bg:#f6f7f9;--card:#fff;--accent:#087D72;--warn:#c27c0e;--err:#c62828;--candL:#e07a1f;--candR:#7b3fd0}
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:var(--font);color:var(--fg);background:var(--bg);font-size:15px}
 button,input,select{font:inherit}button{cursor:pointer}
 .app{display:flex;flex-direction:column;height:100dvh}
 header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line)}
-header .logo{width:26px;height:26px;border-radius:6px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700}
+header .logo{width:26px;height:26px;flex:none;border-radius:6px;background:var(--accent)}
 header h1{font-size:17px;margin:0}header .sp{flex:1}
 footer{font-size:11px;color:var(--muted);text-align:center;padding:4px;border-top:1px solid var(--line);background:var(--card)}
 main{flex:1;min-height:0;display:flex}

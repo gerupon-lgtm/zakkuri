@@ -16,6 +16,10 @@ import { toSima, toDxf } from "../core/cadexport.js";
 import { encodeSjis } from "../io/sjis.js";
 import { alignAngle, normDeg } from "../shared/rotate.js";
 
+const BRAND_LOGO = `<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
+  <path d="M25 70 43 24 75 70Z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M43 39v3m0 7v3m0 7v3" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+</svg>`;
 const store = createStore();
 const $app = document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -165,7 +169,7 @@ async function importWork(file) {
 // ---------- 描画 ----------
 function render() {
   if (S.view === "preview") return renderPreview();
-  const head = `<header class="noprint"><div class="logo">ざ</div><h1>ざっくり地積</h1><span class="sp"></span>${S.w.image ? `<button class="btn sm" data-act="undo" ${S.undo.length ? "" : "disabled"}>元に戻す</button><button class="btn sm" data-act="redo" ${S.redo.length ? "" : "disabled"}>やり直す</button>` : ""}</header>`;
+  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span>${S.w.image ? `<button class="btn sm" data-act="undo" ${S.undo.length ? "" : "disabled"}>元に戻す</button><button class="btn sm" data-act="redo" ${S.redo.length ? "" : "disabled"}>やり直す</button>` : ""}</header>`;
   const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
   const canvas = S.w.image ? `<div class="canvas" id="cv"><svg id="svg"></svg><div class="float"><button class="btn sm" data-act="fit" aria-label="全体を表示">${ICON.fit}</button>${toolBadge()}</div>${areaBadge()}</div>` : `<div class="canvas empty"><div class="hello"><p><b>公図を読み込んでください</b></p><p class="note">スキャン画像・写真（JPEG・PNG）・PDFが使えます。<br>画像はこの端末の中だけで処理し、外部へは送りません。</p></div></div>`;
   const tabs = `<div class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? "on" : ""} ${tabDone(k) ? "done" : ""}" data-tab="${k}" ${!S.w.image && k !== "load" ? "disabled" : ""}>${l}</button>`).join("")}</div>`;
@@ -316,7 +320,7 @@ function renderPreview() {
   const d = S.w.drawing;
   if (!S.C.sansha) { S.view = "work"; return render(); }
   const r = buildSheet(S.w, S.C, d.showBackground ? S.bg : null);
-  const head = `<header class="noprint"><div class="logo">ざ</div><h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closePreview">作業に戻る</button></header>`;
+  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closePreview">作業に戻る</button></header>`;
   const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
   const ctrl = `<div class="pctrl noprint">
     <div class="row"><label>用紙</label><span class="seg"><button class="${d.paper !== "A3" ? "on" : ""}" data-act="paper" data-v="A4">A4横</button><button class="${d.paper === "A3" ? "on" : ""}" data-act="paper" data-v="A3">A3横</button></span>

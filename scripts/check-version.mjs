@@ -1,7 +1,7 @@
 // サクズの scripts/check-version.mjs と同じ仕組み
 // 版の同値チェック（src/version.js と sw.js）と、sw.js の事前キャッシュに src のファイルがすべて入っているかの確認
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join } from "node:path/posix";
 const v = /APP_VERSION = "([^"]+)"/.exec(readFileSync("src/version.js", "utf8"))[1];
 const sw = readFileSync("sw.js", "utf8");
 const sv = /const VERSION = "([^"]+)"/.exec(sw)[1];
