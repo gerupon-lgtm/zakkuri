@@ -82,3 +82,4 @@ dialog.imgdlg{max-width:min(96vw,900px)}dialog.imgdlg img{max-width:100%;max-hei
   .sheet{box-shadow:none;max-width:none;width:auto;aspect-ratio:auto!important}
   .sheet svg{width:auto;height:auto}
 }
+.pbody .list{padding:0;max-width:none;overflow:visible}.pbody .list .card{padding:8px 10px}

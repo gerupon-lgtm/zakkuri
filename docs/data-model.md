@@ -23,6 +23,7 @@
 | vertices | {id, x, y}[] | ◯ | 土地の頂点（元画像座標）。並び順が外周の順番 |
 | closed | boolean | ◯ | 外周を閉じたか（ZC-0.1.0 で追加） |
 | lastTab | string | — | 再開するときに開く手順（load/rect/vert/ref/tri/info。ZC-0.1.0 で追加） |
+| archiveId | string | — | 保存した図面の一覧に入れたときのID。保存し直すと同じ1件を置き換える（ZC-0.4.0 で追加） |
 | north | {x1,y1,x2,y2} | — | 北の向きを示す矢印（元画像座標）。始点→終点が北 |
 | refs.lengths | {id, p1:{x,y}, p2:{x,y}, v1?, v2?, lengthM}[] | — | 辺の長さの基準（元画像座標と、実際の長さ）。v1・v2 は頂点のID。頂点に付いた基準は、頂点を動かすと一緒に動き、頂点を消すと消える（ZC-0.1.0 で追加） |
 | refs.area | {valueM2, chisekiChosa} | — | 公簿面積と、地籍調査済みかどうか |
@@ -56,3 +57,16 @@
 3. schemaVersion がない、またはアプリが知っている版より大きい → `FILE_SCHEMA_UNKNOWN`（現在の作業は保つ）
 4. 必須項目が欠けている、または型が違う → `FILE_INVALID`
 5. 問題がなければ、確認してから現在の作業と置き換える。
+
+## 保存した図面の一覧（IndexedDB `zakkuri` の版2、ストア `drawings`、キー `list`。ZC-0.4.0 で追加）
+
+新しい順の配列。最大20件（`src/core/archive.js` の ARCHIVE_MAX）。1件の形:
+
+| 項目 | 型 | 内容 |
+|---|---|---|
+| id | string | 一覧のID（作業データの archiveId と同じ） |
+| savedAt | string | 保存日時（UTCのISO 8601） |
+| shozai・chiban・chimoku | string | 一覧に表示する所在・地番・地目 |
+| areaText | string \| null | 概算面積（端数処理後） |
+| kobo | number \| null | 公簿面積 |
+| work | object | 作業データの写し。`image.data` は null（公図の画像は残さない） |

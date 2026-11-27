@@ -56,7 +56,7 @@ docs/                 要件・設計
 
 ## バージョン管理
 
-- 形式: `ZC-MAJOR.MINOR.PATCH`（現在の版: `ZC-0.3.2`）
+- 形式: `ZC-MAJOR.MINOR.PATCH`（現在の版: `ZC-0.4.0`）
 - 上げ方: PATCHは小さな修正、MINORは互換性のある機能の追加、MAJORは作業ファイルの互換性が壊れる変更。MINORを上げたらPATCHを0に、MAJORを上げたらMINORとPATCHを0に戻す
 - 正典: `src/version.js` の `APP_VERSION`
 - 反映先: 画面のフッタ、`sw.js` のキャッシュ名、作業ファイルの `appVersion`

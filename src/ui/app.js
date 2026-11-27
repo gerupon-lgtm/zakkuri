@@ -15,6 +15,7 @@ import { buildSheet } from "./sheet.js";
 import { toSima, toDxf } from "../core/cadexport.js";
 import { encodeSjis } from "../io/sjis.js";
 import { alignAngle, normDeg } from "../shared/rotate.js";
+import { makeEntry, upsert, ARCHIVE_MAX } from "../core/archive.js";
 
 const BRAND_LOGO = `<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">
   <path d="M25 70 43 24 75 70Z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/>
@@ -46,7 +47,7 @@ function newWork() {
 // ---------- 状態 ----------
 const S = {
   w: newWork(), disp: null, C: {}, tab: "load", vt: { cx: 0, cy: 0, k: 1 }, sel: null, tool: null, pick: [], insertAfter: null,
-  view: "work", bg: null, msg: null, loupe: null, pdf: null, panelMin: false, prefs: {}, busy: null, undo: [], redo: [],
+  view: "work", viewing: null, saved: [], bg: null, msg: null, loupe: null, pdf: null, panelMin: false, prefs: {}, busy: null, undo: [], redo: [],
 };
 let saveTimer = null;
 
@@ -147,11 +148,36 @@ function download(data, name, type) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 const baseName = () => (S.w.drawing.chiban || S.w.image?.name.replace(/\.[^.]+$/, "") || "zakkuri").replace(/[\\/:*?"<>|]/g, "_");
-function exportCad(kind) {
-  if (!S.C.sansha) return;
-  if (kind === "sima") return download(encodeSjis(toSima(S.w, S.C)), `${baseName()}.sim`, "application/octet-stream");
-  const sc = buildSheet(S.w, S.C).scale;
-  download(encodeSjis(toDxf(S.w, S.C, sc.fixed ? sc.denominator : 250)), `${baseName()}.dxf`, "application/dxf");
+function exportCad(kind, w = S.w, C = S.C) {
+  if (!C.sansha) return;
+  const base = (w.drawing.chiban || w.image?.name.replace(/\.[^.]+$/, "") || "zakkuri").replace(/[\\/:*?"<>|]/g, "_");
+  if (kind === "sima") return download(encodeSjis(toSima(w, C)), `${base}.sim`, "application/octet-stream");
+  const sc = buildSheet(w, C).scale;
+  download(encodeSjis(toDxf(w, C, sc.fixed ? sc.denominator : 250)), `${base}.dxf`, "application/dxf");
+}
+
+// ---------- 保存した図面の一覧（最大20件。図面だけを残し、公図の画像は残さない） ----------
+async function archiveCurrent() {
+  if (!S.C.sansha) return false;
+  const id = S.w.archiveId || uid(); S.w.archiveId = id;
+  const { list, dropped } = upsert(S.saved, makeEntry(S.w, S.C, id, new Date().toISOString()));
+  if (!(await store.putDrawings(list))) { S.msg = { cls: "err", text: "図面を保存できませんでした（端末の空き容量を確かめてください）" }; return false; }
+  S.saved = list; changed(false);
+  S.msg = { text: `図面を一覧に保存しました（${list.length}/${ARCHIVE_MAX}件）${dropped.length ? `。いちばん古い「${entryTitle(dropped[0])}」を一覧から外しました` : ""}` };
+  return true;
+}
+const entryTitle = (e) => [e.shozai, e.chiban].filter(Boolean).join(" ") || "（所在・地番なし）";
+const savedYmd = (iso) => formatYmd(todayJst(new Date(iso)));
+function savedListHtml() {
+  if (!S.saved.length) return `<h4>保存した図面</h4><p class="note">図面のプレビューで「図面を保存」を押すと、ここに残ります（最大${ARCHIVE_MAX}件）。</p>`;
+  return `<h4>保存した図面（${S.saved.length}/${ARCHIVE_MAX}件）</h4><p class="note">図面と計算の内容だけを残しています（公図の画像は残しません）。開くと、印刷・SIMA・DXFの書き出しができます。</p>
+  <div class="list">${S.saved.map((e) => `<div class="card"><div class="t"><div class="n">${esc(entryTitle(e))}</div><div class="d">${esc(e.chimoku || "地目なし")} ・ 概算 ${e.areaText ? esc(e.areaText) + "㎡" : "—"}${e.kobo ? ` ・ 公簿 ${esc(e.kobo)}㎡` : ""} ・ 保存 ${savedYmd(e.savedAt)}</div></div><button class="btn sm" data-act="openSaved" data-id="${e.id}">開く</button><button class="btn sm danger" data-act="delSaved" data-id="${e.id}">削除</button></div>`).join("")}</div>`;
+}
+function openSaved(id) {
+  const e = S.saved.find((x) => x.id === id); if (!e) return;
+  const work = JSON.parse(JSON.stringify(e.work)); work.drawing.showBackground = false;
+  const C = compute(work); if (!C.sansha) { S.msg = { cls: "err", text: "この図面は開けませんでした" }; return render(); }
+  S.viewing = { entry: e, work, C }; S.view = "preview"; S.msg = null; render(); scrollTo(0, 0);
 }
 
 async function importWork(file) {
@@ -201,6 +227,7 @@ function loadHtml() {
   <div class="row"><label class="btn primary file">ファイルを選ぶ<input type="file" accept="image/jpeg,image/png,application/pdf,.pdf,.jpg,.jpeg,.png" data-act="file" hidden></label>
   <label class="btn file">カメラで撮る<input type="file" accept="image/*" capture="environment" data-act="camera" hidden></label></div>
   <p class="note">JPEG・PNG・PDF。PDFは1ページずつ画像にして使います。</p>
+  ${savedListHtml()}
   <h4>作業ファイル</h4><div class="row"><label class="btn file">作業ファイルを読み込む<input type="file" accept=".json,application/json" data-act="workfile" hidden></label>${im ? `<button class="btn" data-act="export">書き出す</button>` : ""}</div>
   <h4>アプリを共有</h4><div class="row"><button class="btn" data-act="share">このアプリのURLを共有</button></div><p class="note">アプリのURLだけを送ります。公図や作業の内容は送りません。</p><div id="shareOut"></div>
   ${im ? `<h4>作業を消す</h4><button class="btn danger" data-act="clearWork">この作業を消して最初から</button>` : ""}`;
@@ -317,6 +344,7 @@ function rotateHtml() {
 
 // ---------- 図面のプレビュー・印刷（S-002・F-010） ----------
 function renderPreview() {
+  if (S.viewing) return renderSavedPreview();
   const d = S.w.drawing;
   if (!S.C.sansha) { S.view = "work"; return render(); }
   const r = buildSheet(S.w, S.C, d.showBackground ? S.bg : null);
@@ -327,7 +355,24 @@ function renderPreview() {
     <label style="min-width:0"><input type="checkbox" data-set="showBg" ${d.showBackground ? "checked" : ""}> 公図を背景に</label></div>
     ${rotateHtml()}
     <div class="row"><button class="btn primary" data-act="print">印刷／PDFに保存</button><span class="note">図面縮尺 ${r.scale.fixed ? "1/" + r.scale.denominator : "縮尺任意"}</span></div>
-    <p class="note">PDFにするときは、印刷画面の送信先で「PDFに保存」を選び、用紙を${d.paper === "A3" ? "A3" : "A4"}・横、余白を「なし」にしてください。</p></div>`;
+    <p class="note">PDFにするときは、印刷画面の送信先で「PDFに保存」を選び、用紙を${d.paper === "A3" ? "A3" : "A4"}・横、余白を「なし」にしてください。</p>
+    <h4>できあがったら</h4>
+    <div class="row"><button class="btn" data-act="archive">${S.w.archiveId && S.saved.some((e) => e.id === S.w.archiveId) ? "保存し直す" : "図面を保存（一覧に残す）"}</button><button class="btn" data-act="sima">SIMA</button><button class="btn" data-act="dxf">DXF</button></div>
+    <div class="row"><button class="btn primary" data-act="nextDrawing">保存して次の公図へ</button></div>
+    <p class="note">保存した図面は①読込の画面に最大${ARCHIVE_MAX}件残り、あとから印刷し直せます（公図の画像は残しません）。</p>
+    ${S.msg ? `<div class="msg ${S.msg.cls ?? ""}">${S.msg.html ?? esc(S.msg.text)}</div>` : ""}</div>`;
+  $app.innerHTML = head + `<main class="pmain"><div class="preview">${ctrl}<div class="sheetWrap"><div class="sheet" style="aspect-ratio:${r.W}/${r.H}">${r.svg}</div></div></div></main>` + foot;
+}
+function renderSavedPreview() {
+  const { entry, work, C } = S.viewing, d = work.drawing;
+  const r = buildSheet(work, C, null);
+  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closeSaved">一覧に戻る</button></header>${updateBar()}`;
+  const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
+  const ctrl = `<div class="pctrl noprint">
+    <div class="row"><b>保存した図面：${esc(entryTitle(entry))}</b><span class="note">保存 ${savedYmd(entry.savedAt)}</span></div>
+    <div class="row"><label>用紙</label><span class="seg"><button class="${d.paper !== "A3" ? "on" : ""}" data-act="vPaper" data-v="A4">A4横</button><button class="${d.paper === "A3" ? "on" : ""}" data-act="vPaper" data-v="A3">A3横</button></span></div>
+    <div class="row"><button class="btn primary" data-act="print">印刷／PDFに保存</button><button class="btn" data-act="vSima">SIMA</button><button class="btn" data-act="vDxf">DXF</button><button class="btn sm danger" data-act="delSaved" data-id="${entry.id}">一覧から削除</button></div>
+    <p class="note">公図の画像は残していないため、背景の表示と頂点の修正はできません。直すときは、公図を読み込み直してください。</p></div>`;
   $app.innerHTML = head + `<main class="pmain"><div class="preview">${ctrl}<div class="sheetWrap"><div class="sheet" style="aspect-ratio:${r.W}/${r.H}">${r.svg}</div></div></div></main>` + foot;
 }
 /** 背景に重ねる画像（補正したときは補正後の画像を作る）。設定が変わったら作り直す */
@@ -341,7 +386,8 @@ async function prepareBg() {
 }
 function setPageSize() {
   let st = document.getElementById("pageSize"); if (!st) { st = document.createElement("style"); st.id = "pageSize"; document.head.appendChild(st); }
-  st.textContent = `@page { size: ${S.w.drawing.paper === "A3" ? "A3" : "A4"} landscape; margin: 0 }`;
+  const paper = (S.viewing?.work ?? S.w).drawing.paper;
+  st.textContent = `@page { size: ${paper === "A3" ? "A3" : "A4"} landscape; margin: 0 }`;
 }
 async function share() {
   const url = location.origin + location.pathname; // クエリ文字列・ハッシュを付けない（C-02）
@@ -526,8 +572,8 @@ async function onTap(x, y) {
       if (!w.closed && w.vertices.length >= 3 && w.vertices[0].id === t.id) { S.sel = null; S.msg = { text: "外周を閉じました。④で基準を入れてください" }; return edit((w) => { w.closed = true; }); }
       S.sel = S.sel?.id === t.id ? null : { kind: "v", id: t.id }; return render();
     }
-    if (S.insertAfter) { const i = idxOf(S.insertAfter); const nv = { id: uid(), x: p.x, y: p.y }; S.insertAfter = null; S.sel = { kind: "v", id: nv.id }; return edit((w) => { w.vertices.splice(i + 1, 0, nv); }); }
-    if (!w.closed) { const nv = { id: uid(), x: p.x, y: p.y }; return edit((w) => { w.vertices.push(nv); }); }
+    if (S.insertAfter) { const i = idxOf(S.insertAfter); const nv = { id: uid(), x: p.x, y: p.y }; S.insertAfter = null; S.sel = null; return edit((w) => { w.vertices.splice(i + 1, 0, nv); }); }
+    if (!w.closed) { const nv = { id: uid(), x: p.x, y: p.y }; S.sel = null; return edit((w) => { w.vertices.push(nv); }); }
     if (S.sel) { S.sel = null; return render(); }
     S.msg = { text: "外周は閉じています。頂点を足すときは、頂点を選んで「この後ろに追加」を押してください" }; return render();
   }
@@ -577,7 +623,16 @@ $app.addEventListener("click", async (e) => {
     case "refDel": return edit((w) => { w.refs.lengths = w.refs.lengths.filter((r) => r.id !== t.dataset.id); });
     case "triReset": S.msg = null; return edit((w) => { w.triangles = null; });
     case "preview": S.busy = null; S.view = "preview"; if (!w.drawing.createdDate) w.drawing.createdDate = todayJst(); await prepareBg(); return render();
-    case "closePreview": S.view = "work"; S.tab = "info"; render(); return requestAnimationFrame(fit);
+    case "closePreview": S.view = "work"; S.tab = "info"; S.msg = null; render(); return requestAnimationFrame(fit);
+    case "archive": await archiveCurrent(); return render();
+    case "nextDrawing": if (!(await archiveCurrent())) return render(); { const m = S.msg; S.view = "work"; S.tab = "load"; S.msg = { text: `${m.text}。次の公図を読み込んでください` }; render(); return scrollTo(0, 0); }
+    case "openSaved": return openSaved(t.dataset.id);
+    case "closeSaved": S.viewing = null; S.view = "work"; S.tab = "load"; render(); if (S.w.image) requestAnimationFrame(fit); return;
+    case "delSaved": { const e = S.saved.find((x) => x.id === t.dataset.id); if (!e || !(await modal(`「${entryTitle(e)}」を一覧から削除します。よろしいですか？`))) return;
+      S.saved = S.saved.filter((x) => x.id !== e.id); await store.putDrawings(S.saved); if (S.viewing?.entry.id === e.id) { S.viewing = null; S.view = "work"; S.tab = "load"; } S.msg = { text: "一覧から削除しました" }; return render(); }
+    case "vPaper": S.viewing.work.drawing.paper = t.dataset.v; return render();
+    case "vSima": return exportCad("sima", S.viewing.work, S.viewing.C);
+    case "vDxf": return exportCad("dxf", S.viewing.work, S.viewing.C);
     case "print": setPageSize(); return window.print();
     case "paper": edit((w) => { w.drawing.paper = t.dataset.v; }); return;
     case "rot0": edit((w) => { w.drawing.rotationDeg = 0; }); return;
@@ -644,6 +699,7 @@ if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) globalThis.__zk = { S,
 // ---------- 起動：前回の作業があれば、最後の手順から再開する（F-011） ----------
 (async () => {
   S.prefs = (await store.getPrefs()) ?? {};
+  S.saved = (await store.getDrawings()) ?? [];
   const saved = await store.getWork();
   if (saved?.image?.data) {
     try {
