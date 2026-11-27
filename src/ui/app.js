@@ -169,7 +169,7 @@ async function importWork(file) {
 // ---------- 描画 ----------
 function render() {
   if (S.view === "preview") return renderPreview();
-  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span>${S.w.image ? `<button class="btn sm" data-act="undo" ${S.undo.length ? "" : "disabled"}>元に戻す</button><button class="btn sm" data-act="redo" ${S.redo.length ? "" : "disabled"}>やり直す</button>` : ""}</header>`;
+  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span>${S.w.image ? `<button class="btn sm" data-act="undo" ${S.undo.length ? "" : "disabled"}>元に戻す</button><button class="btn sm" data-act="redo" ${S.redo.length ? "" : "disabled"}>やり直す</button>` : ""}</header>${updateBar()}`;
   const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
   const canvas = S.w.image ? `<div class="canvas" id="cv"><svg id="svg"></svg><div class="float"><button class="btn sm" data-act="fit" aria-label="全体を表示">${ICON.fit}</button>${toolBadge()}</div>${areaBadge()}</div>` : `<div class="canvas empty"><div class="hello"><p><b>公図を読み込んでください</b></p><p class="note">スキャン画像・写真（JPEG・PNG）・PDFが使えます。<br>画像はこの端末の中だけで処理し、外部へは送りません。</p></div></div>`;
   const tabs = `<div class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? "on" : ""} ${tabDone(k) ? "done" : ""}" data-tab="${k}" ${!S.w.image && k !== "load" ? "disabled" : ""}>${l}</button>`).join("")}</div>`;
@@ -320,7 +320,7 @@ function renderPreview() {
   const d = S.w.drawing;
   if (!S.C.sansha) { S.view = "work"; return render(); }
   const r = buildSheet(S.w, S.C, d.showBackground ? S.bg : null);
-  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closePreview">作業に戻る</button></header>`;
+  const head = `<header class="noprint">${BRAND_LOGO}<h1>ざっくり地積</h1><span class="sp"></span><button class="btn sm" data-act="closePreview">作業に戻る</button></header>${updateBar()}`;
   const foot = `<footer class="noprint">${APP_VERSION} ・ © 2026 SIKUMI LAB</footer>`;
   const ctrl = `<div class="pctrl noprint">
     <div class="row"><label>用紙</label><span class="seg"><button class="${d.paper !== "A3" ? "on" : ""}" data-act="paper" data-v="A4">A4横</button><button class="${d.paper === "A3" ? "on" : ""}" data-act="paper" data-v="A3">A3横</button></span>
@@ -624,12 +624,19 @@ window.addEventListener("keydown", (e) => {
 
 // PWA（公開サイトでだけ登録する）
 if ("serviceWorker" in navigator && location.protocol === "https:") {
+  // 新しい版の切り替え: 新版は裏で入り「待機」になる。案内の「更新する」で待機中の版に切り替えてから読み直す
+  // （ただ読み直すだけでは、開いている画面がある間は古い版のままになるため）
+  const hadController = !!navigator.serviceWorker.controller; let swReg = null, reloading = false;
+  const offerUpdate = () => { if (S.updateReady) return; S.updateReady = true; render(); };
   navigator.serviceWorker.register("sw.js").then((reg) => {
-    reg.addEventListener("updatefound", () => { const nw = reg.installing; nw?.addEventListener("statechange", () => {
-      if (nw.state === "installed" && navigator.serviceWorker.controller) { S.msg = { html: `新しい版があります。<button class="btn sm" data-act="reload">更新する</button>` }; render(); } }); });
+    swReg = reg; if (reg.waiting && hadController) offerUpdate();
+    reg.addEventListener("updatefound", () => { const nw = reg.installing; nw?.addEventListener("statechange", () => { if (nw.state === "installed" && navigator.serviceWorker.controller) offerUpdate(); }); });
   }).catch(() => {});
-  $app.addEventListener("click", (e) => { if (e.target.closest("[data-act=reload]")) location.reload(); });
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloading) { reloading = true; location.reload(); } });
+  $app.addEventListener("click", (e) => { if (!e.target.closest("[data-act=reload]")) return; if (swReg?.waiting) swReg.waiting.postMessage("SKIP_WAITING"); else location.reload(); });
 }
+/** ヘッダの下に出す「新しい版があります」 */
+function updateBar() { return S.updateReady ? `<div class="msg noprint" style="margin:6px 12px">新しい版があります。<button class="btn sm" data-act="reload">更新する</button></div>` : ""; }
 
 // 動作確認用（localhost のときだけ。公開サイトでは使わない）
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) globalThis.__zk = { S, toScr, svgRect };

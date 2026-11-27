@@ -249,3 +249,6 @@
 - サクズの三斜求積（F-028）・DXFの出力（F-020）のために、ざっくり地積の `src/core/triangulate.js`・`src/core/sansha.js`・`src/io/sjis.js` を、サクズの `src/shared/` に移した。以後はサクズ側を正典とする（C-05b）。中身は同じ（サクズ側は1ファイルにまとめたときの名前の衝突を避けるため、内部の関数名 `cross`→`triCross`、`key`→`diagKey` だけ変えた）。
 - ざっくり地積のコードは今回は変えていない。次にこれらの計算を直すときは、サクズの `src/shared/` から写して、両方のテストを通す。
 - サクズには DXF を書く共通部品 `src/shared/dxfwriter.js` もできた。ざっくり地積の `src/core/cadexport.js` を書き換えるかは、T-102 の確定（発案者のCADでの確認）のときに判断する。
+
+### 修正（ZC-0.3.2）新しい版に切り替わらない（T-016）
+- サクズ SZ-0.6.2 と同じ修正。「更新する」で待機中の Service Worker に SKIP_WAITING を送り、切り替わったら読み直す。開いた時点で待機中の版があれば案内を出す。scripts/make-sw.mjs に message の処理を足した。

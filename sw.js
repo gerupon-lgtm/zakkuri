@@ -1,6 +1,6 @@
 // ざっくり地積の Service Worker（F-016。サクズの sw.js と同じ作り: 版ごとの事前キャッシュ）
 // このファイルは scripts/make-sw.mjs で作る（手で書き換えない）
-const VERSION = "ZC-0.3.1"; // src/version.js と同じ値（scripts/check-version.mjs で確認）
+const VERSION = "ZC-0.3.2"; // src/version.js と同じ値（scripts/check-version.mjs で確認）
 const CACHE = `zakkuri-${VERSION}`;
 const FILES = [
   "./",
@@ -44,6 +44,7 @@ self.addEventListener("install", (e) => {
   const requests = FILES.map((file) => new Request(file, { cache: "reload" }));
   e.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(requests)));
 });
+self.addEventListener("message", (e) => { if (e.data === "SKIP_WAITING") self.skipWaiting(); }); // 「更新する」で待機中の新版にすぐ切り替える
 self.addEventListener("activate", (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith("zakkuri-") && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
