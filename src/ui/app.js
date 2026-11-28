@@ -281,6 +281,9 @@ function refHtml() {
   <div class="row"><label><input type="checkbox" data-set="chiseki" ${ar.chisekiChosa ? "checked" : ""}> 地籍調査済み</label><span class="note">（面積を基準に縮尺を出します）</span></div>
   <div class="row"><label>地目</label><select data-set="chimoku"><option value="">選んでください</option>${CHIMOKU.map((c) => `<option ${w.chimoku === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>
   <div class="row"><label><input type="checkbox" data-set="aniso" ${w.anisotropic ? "checked" : ""}> 縦横別の縮尺を使う</label></div>
+  <h4>求積に使う長さ</h4>
+  <div class="row"><span class="seg"><button class="${w.lengthMode !== "input" ? "on" : ""}" data-act="lenMode" data-v="image">画像から求めた長さ</button><button class="${w.lengthMode === "input" ? "on" : ""}" data-act="lenMode" data-v="input" ${C.adjustable ? "" : "disabled"}>入力した長さ</button></span></div>
+  <p class="note">${w.lengthMode === "input" ? "入力した辺（対角線も含む）の長さどおりになるように、頂点の位置を調整して求積します。入力していない辺や角度は、画像の形にできるだけ近く保ちます。" : "入力した長さは縮尺を決めるのに使い、面積は画像の上の頂点の位置から求めます。"}${C.adjustable ? "" : "（頂点どうしの長さを入力すると選べます）"}</p>
   ${resultHtml()}
   <div class="row"><button class="btn primary" data-tab="tri" ${C.sansha ? "" : "disabled"}>次へ（分割）</button></div>`;
 }
@@ -292,11 +295,12 @@ function resultHtml() {
   if (sc.code) return `<div class="msg ${sc.code === "SCALE_NO_REFERENCE" ? "" : "err"}">${msgOf(sc.code)}</div>`;
   const methodText = sc.method === "area" ? "面積基準で縮尺を算出" : `辺の長さ（${sc.usedLengths}本）を基準に縮尺を算出`;
   const an = S.w.anisotropic ? (sc.aniso.ok ? `縦横別：横 ${(sc.sx * 1000).toFixed(3)} ／ 縦 ${(sc.sy * 1000).toFixed(3)} mm/px（比 ${fmtPct((sc.sx / sc.sy - 1) * 100)}）` : MSG.ANISO_INSUFFICIENT) : "";
-  const warn = C.warnings.filter((x) => x === "ANISO_LARGE_RATIO").map((x) => `<div class="msg warn">${MSG[x]}</div>`).join("");
+  const warn = C.warnings.filter((x) => ["ANISO_LARGE_RATIO", "ADJUST_INCONSISTENT", "ADJUST_BROKE_SHAPE"].includes(x)).map((x) => `<div class="msg warn">${MSG[x]}</div>`).join("");
+  const adj = C.adjust && !C.adjust.code ? `<div>求積：入力した長さ（${C.adjust.count}本）に合わせて頂点を調整（最大 ${roundHalfUp(C.adjust.maxMove * 100, 1).toFixed(1)}cm）</div>` : "";
   const areaRow = sc.refs.find((r) => r.kind === "area");
   return `<div class="result"><div><b>${methodText}</b></div>
    <div>公図の推定縮尺：${C.paperDen ? `約 1/${Math.round(C.paperDen)}` : "—（②で用紙を選ぶと表示）"}</div>
-   ${an ? `<div>${an}</div>` : ""}
+   ${an ? `<div>${an}</div>` : ""}${adj}
    ${areaRow ? `<div>公簿面積との食い違い（縮尺換算）：<span class="${areaRow.flag ? "badge error" : ""}">${fmtPct(areaRow.diffPct)}</span></div>` : ""}
    ${C.sansha ? `<div class="big">概算面積 ${formatArea(C.approxM2)}㎡${C.chiseki.text ? `（地積 ${C.chiseki.text}㎡）` : ""}</div>${C.compare ? `<div>公簿面積との差：${C.compare.diff >= 0 ? "+" : ""}${formatArea(C.compare.diff)}㎡（${fmtPct(C.compare.pct)}）</div>` : ""}` : `<div class="note">外周を閉じると面積を表示します</div>`}
    ${C.sansha && !C.chiseki.text ? `<div class="note">${MSG.CHIMOKU_REQUIRED}</div>` : ""}
@@ -621,6 +625,7 @@ $app.addEventListener("click", async (e) => {
     case "ref2": S.tool = "ref2"; S.pick = []; S.msg = null; if (innerWidth < 900) S.panelMin = true; render(); return requestAnimationFrame(() => drawSvg());
     case "toolCancel": S.tool = null; S.pick = []; S.panelMin = false; return render();
     case "refDel": return edit((w) => { w.refs.lengths = w.refs.lengths.filter((r) => r.id !== t.dataset.id); });
+    case "lenMode": S.msg = null; return edit((w) => { w.lengthMode = t.dataset.v; w.triangles = null; });
     case "triReset": S.msg = null; return edit((w) => { w.triangles = null; });
     case "preview": S.busy = null; S.view = "preview"; if (!w.drawing.createdDate) w.drawing.createdDate = todayJst(); await prepareBg(); return render();
     case "closePreview": S.view = "work"; S.tab = "info"; S.msg = null; render(); return requestAnimationFrame(fit);

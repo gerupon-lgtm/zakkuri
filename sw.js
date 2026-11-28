@@ -1,6 +1,6 @@
 // ざっくり地積の Service Worker（F-016。サクズの sw.js と同じ作り: 版ごとの事前キャッシュ）
 // このファイルは scripts/make-sw.mjs で作る（手で書き換えない）
-const VERSION = "ZC-0.4.0"; // src/version.js と同じ値（scripts/check-version.mjs で確認）
+const VERSION = "ZC-0.5.0"; // src/version.js と同じ値（scripts/check-version.mjs で確認）
 const CACHE = `zakkuri-${VERSION}`;
 const FILES = [
   "./",
@@ -17,6 +17,7 @@ const FILES = [
   "fonts/BIZUDPGothic-Regular.woff2",
   "vendor/pdfjs/pdf.min.mjs",
   "vendor/pdfjs/pdf.worker.min.mjs",
+  "src/core/adjust.js",
   "src/core/archive.js",
   "src/core/cadexport.js",
   "src/core/chimoku.js",

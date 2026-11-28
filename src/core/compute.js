@@ -3,6 +3,7 @@ import { buildRectify, mmPerPx } from "./homography.js";
 import { estimateScale, paperScaleDenominator } from "./scale.js";
 import { triangulate, trisValid } from "./triangulate.js";
 import { sansha } from "./sansha.js";
+import { adjustToLengths } from "./adjust.js";
 import { truncateArea } from "./chimoku.js";
 import { validatePolygon, area, segmentsIntersect } from "../shared/geometry.js";
 
@@ -53,6 +54,18 @@ export function compute(work) {
   if (work.north) { const a = R.map({ x: work.north.x1, y: work.north.y1 }), b = R.map({ x: work.north.x2, y: work.north.y2 }); out.northReal = { x: (b.x - a.x) * sc.sx, y: (b.y - a.y) * sc.sy }; }
   out.edgeLen = V.map((p, i) => { const q = V[(i + 1) % V.length]; return Math.hypot((q.x - p.x) * sc.sx, (q.y - p.y) * sc.sy); });
   if (!polyOk) return out;
+
+  // 求積に使う長さ（F-019）: "input" なら、頂点どうしに入力した長さに合わせて頂点を調整する
+  const idx = new Map(work.vertices.map((v, i) => [v.id, i]));
+  const cons = work.refs.lengths.filter((r) => r.v1 && r.v2 && idx.has(r.v1) && idx.has(r.v2) && r.v1 !== r.v2).map((r) => ({ i: idx.get(r.v1), j: idx.get(r.v2), L: r.lengthM }));
+  out.adjustable = cons.length > 0;
+  if (work.lengthMode === "input" && cons.length) {
+    const a = adjustToLengths(out.real, cons);
+    out.adjust = { maxMove: a.maxMove, maxResidual: a.maxResidual, count: cons.length, code: a.code };
+    if (a.code) out.warnings.push(a.code);
+    if (validatePolygon(a.pts)) { out.adjust.code = "ADJUST_BROKE_SHAPE"; out.warnings.push("ADJUST_BROKE_SHAPE"); }
+    else { out.real = a.pts; out.edgeLen = a.pts.map((p, i) => { const q = a.pts[(i + 1) % a.pts.length]; return Math.hypot(q.x - p.x, q.y - p.y); }); }
+  }
 
   // 分割（保存した分け方が今の頂点で有効なら使う。無効なら自動分割に戻す）
   let tris = work.triangles;

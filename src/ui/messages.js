@@ -10,6 +10,8 @@ export const MSG = {
   ANISO_LARGE_RATIO: "縦と横の縮尺が3%以上違います。公図の歪みか、基準の入力を確かめてください",
   REF_SAME_POINT: "基準の2点が同じ位置です",
   REF_NON_POSITIVE: "長さ・面積は0より大きい数値で入れてください",
+  ADJUST_INCONSISTENT: "入力した長さどうしが合わず、すべてを満たす形にできませんでした。入力値を確かめてください",
+  ADJUST_BROKE_SHAPE: "入力した長さに合わせると線が交差するため、画像から求めた長さで求積しています。入力値を確かめてください",
   FLIP_NOT_CONVEX: "この対角線は入れ替えられません（四角形が凹んでいるため）",
   FLIP_NOT_DIAGONAL: "対角線をタップしてください",
   CHIMOKU_REQUIRED: "④で地目を選ぶと、地積（端数処理後）を表示します",

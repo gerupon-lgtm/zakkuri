@@ -23,6 +23,7 @@
 | vertices | {id, x, y}[] | ◯ | 土地の頂点（元画像座標）。並び順が外周の順番 |
 | closed | boolean | ◯ | 外周を閉じたか（ZC-0.1.0 で追加） |
 | lastTab | string | — | 再開するときに開く手順（load/rect/vert/ref/tri/info。ZC-0.1.0 で追加） |
+| lengthMode | "image" \| "input" | — | 求積に使う長さ（F-019。ないときは "image"。ZC-0.5.0 で追加） |
 | archiveId | string | — | 保存した図面の一覧に入れたときのID。保存し直すと同じ1件を置き換える（ZC-0.4.0 で追加） |
 | north | {x1,y1,x2,y2} | — | 北の向きを示す矢印（元画像座標）。始点→終点が北 |
 | refs.lengths | {id, p1:{x,y}, p2:{x,y}, v1?, v2?, lengthM}[] | — | 辺の長さの基準（元画像座標と、実際の長さ）。v1・v2 は頂点のID。頂点に付いた基準は、頂点を動かすと一緒に動き、頂点を消すと消える（ZC-0.1.0 で追加） |

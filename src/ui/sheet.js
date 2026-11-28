@@ -112,7 +112,8 @@ export function buildSheet(work, C, bg = null) {
   const fy = H - M - FOOT, refs = referenceList(work, C);
   const sx = C.scale.sx, sy = C.scale.sy;
   const est = C.paperDen ? (work.anisotropic && C.scale.aniso?.ok ? `約1/${Math.round(C.paperDen)}（横 ${(sx * 1000).toFixed(3)}・縦 ${(sy * 1000).toFixed(3)} mm/px）` : `約1/${Math.round(C.paperDen)}`) : (work.anisotropic && C.scale.aniso?.ok ? `用紙不明（横 ${(sx * 1000).toFixed(3)}・縦 ${(sy * 1000).toFixed(3)} mm/px）` : "用紙不明のため表示なし");
-  const method = C.scale.method === "area" ? "面積基準で縮尺を算出" : `辺の長さ（${C.scale.usedLengths}本）を基準に縮尺を算出`;
+  const method = (C.scale.method === "area" ? "面積基準で縮尺を算出" : `辺の長さ（${C.scale.usedLengths}本）を基準に縮尺を算出`)
+    + (C.adjust && !C.adjust.code ? `　求積は入力した長さに合わせて頂点を調整（最大${(Math.round(C.adjust.maxMove * 1000) / 10).toFixed(1)}cm）` : "　求積は画像から求めた長さ");
   const refText = wrap(`使った基準：${refs.join("、") || "—"}`, d.paper === "A3" ? 120 : 84);
   const foot = `<rect x="${M}" y="${fy}" width="${W - 2 * M}" height="${FOOT}" fill="none" stroke="#000" stroke-width="0.3"/>
    <text x="${M + 3}" y="${fy + 5}" font-size="2.8">図面縮尺 ${sc.fixed ? `1/${sc.denominator}` : "縮尺任意"}　　公図の推定縮尺 ${esc(est)}　　${method}　　台形補正 ${work.rectify.enabled ? "あり" : "なし"}</text>
